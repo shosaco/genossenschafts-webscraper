@@ -1,5 +1,5 @@
 
-results <- NULL
+results <- NULL  # toString(Sys.time())
 
 gatekeeper <- function(url){
   webpage <- tryCatch(read_html(url),
