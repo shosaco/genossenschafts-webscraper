@@ -2,8 +2,8 @@ suppressPackageStartupMessages(library(rvest))
 
 args = commandArgs(trailingOnly = TRUE)
 
-if (length(args) == 0) {
-  stop("At least one argument must be supplied.")
+if (length(args) != 2) {
+  stop("Usage: Rscript main.R working-folder output-folder, where working-folder must contain script.R.")
 } else if (length(args) == 2) {
   input = args[1]
   if (!file.exists(input)) stop("Working folder ", input, " does not exist.")
