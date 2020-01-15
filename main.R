@@ -1,17 +1,13 @@
-suppressPackageStartupMessages(library(rvest))
-
 args = commandArgs(trailingOnly = TRUE)
 
 if (length(args) != 2) {
   stop("Usage: Rscript main.R working-folder output-folder, where working-folder must contain script.R.")
-} else if (length(args) == 2) {
+} else {
   input = args[1]
   if (!file.exists(input)) stop("Working folder ", input, " does not exist.")
   
   output = args[2]
   if (!file.exists(output)) stop("Output folder ", output, " does not exist.")
-} else {
-  stop("Too many or too few arguments.")
 }
 
 out_file <- file(file.path(output, "GENOSSENSCHAFTEN_RESULT.txt"))
@@ -20,7 +16,9 @@ out_file <- file(file.path(output, "GENOSSENSCHAFTEN_RESULT.txt"))
 tryCatch(
   source(file.path(input, "script.r"), encoding = "UTF-8"),
   error = function(e) writeLines(e$message, out_file),
-  finally = if (!is.null(results)) writeLines(results, out_file)
+  finally = {
+    if (!is.null(results)) writeLines(results, out_file) else print("Nothing new.")
+    close(out_file)
+  }
 )
 
-close(out_file)
