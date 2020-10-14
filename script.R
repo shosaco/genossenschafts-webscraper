@@ -11,7 +11,7 @@ gatekeeper <- function(url){
 }
 
 # BDS hat Angebote, falls Immoliste mit neuen Angeboten befüllt ist
-offers <- html_nodes(gatekeeper("https://www.bds-hamburg.de/unser-angebot/wohnungsangebote/"), ".immobilielist .listitem a") %>% as_list %>% map_chr(attr, "href") %>% unique
+offers <- html_nodes(gatekeeper("https://www.bds-hamburg.de/unser-angebot/wohnungsangebote/"), ".immobilielist .listitem a") %>% as_list %>% purrr::map_chr(attr, "href") %>% unique
 known <- "055.1.012"
 new <- offers[!grepl(paste(known, collapse = "|"), offers)]
 if (length(new) > 0){
@@ -54,8 +54,7 @@ if(length(new) > 0){
 }
 
 # BVE
-library(purrr)
-offers <- as_list(html_nodes(gatekeeper("https://www.bve.de/wohnen-beim-bve/wohnungsbestand/wohnungsangebote/"), ".contentWrapper span")) %>% flatten
+offers <- as_list(html_nodes(gatekeeper("https://www.bve.de/wohnen-beim-bve/wohnungsbestand/wohnungsangebote/"), ".contentWrapper span")) %>% purrr::flatten()
 if(length(offers) > 1 | offers[[1]] != "Zur Zeit sind leider keine Wohnungsangebote vorhanden."){
   browseURL("https://www.bve.de/wohnen-beim-bve/wohnungsbestand/wohnungsangebote/")
 }
@@ -74,8 +73,11 @@ if (length(new) > 0){
 }
 
 # WV1902
-if(!grepl("leider keine Wohnungen", html_nodes(gatekeeper("https://www.wv1902.de/Wohnungen"), "#Inhalt .text b") %>% html_text)){
-  browseURL("https://www.wv1902.de/Wohnungen")
+if(length(html_nodes(gatekeeper("https://www.wv1902.de/Wohnungen"), "#Inhalt table")) > 0){
+  offers <- html_nodes(gatekeeper("https://www.wv1902.de/Wohnungen"), "#Inhalt table tr td a") %>% html_attr("href") %>% unique
+  known <- "/Wohnungen/Bruno_Lauenroth_Weg_6/338"
+  new <- offers[!grepl(paste(known, collapse = "|"), offers)]
+  if (length(new) > 0) browseURL("https://www.wv1902.de/Wohnungen")
 }
 
 # Süderelbe
