@@ -9,6 +9,7 @@ suppressPackageStartupMessages({
   library(rvest)
   library(stringr)
   library(purrr)
+  library(dplyr)
 })
 
 entities <- tibble::tribble(~name, ~url, ~path, ~known_offers, ~check_keine_angebote_text,
@@ -69,11 +70,16 @@ entities$result <- map_chr(transpose(entities), possibly(check_single, otherwise
 
 # write errors or new offers to desktop always and results to Desktop once a week
 write_to_desktop <- function(df, name){
-  write.csv2(df, file.path(dirname(path.expand('~')),'Desktop', name), row.names = F, quote = F)
+  fileConn<-file(file.path(dirname(path.expand('~')),'Desktop', name))
+  writeLines(knitr::kable(df), fileConn)
+  close(fileConn)
+  # write.csv2(, , row.names = F, quote = F)
 }
 
-errors <- entities[!entities$result %in% unlist(possible_outcomes), c("name", "url", "result")]
-to_be_checked <- entities[entities$result == possible_outcomes$CHECKITOUT, c("name", "url", "result")]
+for_output    <- entities %>% select(name, result, url)
+errors        <- for_output %>% filter(! result %in% unlist(possible_outcomes))
+to_be_checked <- for_output %>% filter(result == possible_outcomes$CHECKITOUT)
+
 if(nrow(errors) > 0) write_to_desktop(errors, "ERRORS.txt")
 if(nrow(to_be_checked) > 0) write_to_desktop(to_be_checked, "NEW_OFFERS.txt")
-if(as.integer(format(Sys.Date(), "%d")) %% 7 == 0) write_to_desktop(entities[, c("result", "name", "url")], "WEEKLY_RESULTS.txt")
+if(as.integer(format(Sys.Date(), "%d")) %% 7 == 0) write_to_desktop(for_output, "WEEKLY_RESULTS.txt")
