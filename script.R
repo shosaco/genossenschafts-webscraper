@@ -1,4 +1,10 @@
-.libPaths("./renv/library/R-4.0/x86_64-w64-mingw32")
+# .Rprofile activates renv -> workaround if this script is run from different directory
+if(!any(grepl("renv", .libPaths()))){
+  this_file = gsub("--file=", "", commandArgs()[grepl("--file", commandArgs())])
+  wd <- paste(head(strsplit(this_file, '[/|\\]')[[1]], -1), collapse = .Platform$file.sep)
+  source(file.path(wd, "renv/activate.R"))
+}
+
 suppressPackageStartupMessages({
   library(rvest)
   library(stringr)
@@ -9,8 +15,8 @@ entities <- tibble::tribble(~name, ~url, ~path, ~known_offers, ~check_keine_ange
                             "bds", "https://www.bds-hamburg.de/unser-angebot/wohnungsangebote/", ".immobilielist .listitem a", c("055.1.012", "022.3.054"), TRUE,
                             "kaifu", "https://kaifu.de/index.php?id=14", ".getRight .kaifu_elem .kaifu_content a", c("106701", "102501", "105002", "105201"), FALSE,
                             "fuhle", "https://portal.immobilienscout24.de/ergebnisliste/15339103", ".result__list__element__infos--figcaption a", c("121803482", "123905365", "15339103"), TRUE,
-                            "farmsen", "https://www.mgf-farmsen.de/de/vermietungen", ".immobilie .imm_top .imm_text a", c("055.1.012"), TRUE,
-                            "VHW", "https://www.vhw-hamburg.de/wohnen/aktuelle-angebote.html", "section.searchResults--list a",  c("id-71104.1008.1008", "id-53201.12.1036"), TRUE,
+                            "farmsen", "https://www.mgf-farmsen.de/de/vermietungen", ".immobilie .imm_top .imm_text a", c(), TRUE,
+                            "VHW", "https://www.vhw-hamburg.de/wohnen/aktuelle-angebote.html", "section.searchResults--list a",  c(), TRUE,
                             "Harabau", "http://harabau.de/vermietung/wohnungen", "#homepage-mietangebote-content #subtitle", c(), TRUE,
                             "Süderelbe", "https://www.baugen-suederelbe.de/wohnungangebote/", ".pm-component__accomodation_link", c(), TRUE,
                             "BVE", "https://www.bve.de/wohnen-beim-bve/wohnungsbestand/wohnungsangebote/", ".contentWrapper span", c(), TRUE,
@@ -28,7 +34,7 @@ check_single <- function(row, possible_outcomes){
   # row contains url, path, known_offers
   if(row$check_keine_angebote_text){
     nix_da <- page_html %>% html_text %>% str_to_lower() %>% 
-      str_detect("keine (freien |aktuellen )?(wohnungs|miet)?(angebote|wohnungen)")
+      str_detect("keine (freien |aktuellen )?(wohnungs|miet)?(angebote|wohnung)")
     if(nix_da){
       return(possible_outcomes$NOTHING)
     } 
