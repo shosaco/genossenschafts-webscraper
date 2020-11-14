@@ -69,17 +69,17 @@ entities$result <- map_chr(transpose(entities), possibly(check_single, otherwise
                            possible_outcomes)
 
 # write errors or new offers to desktop always and results to Desktop once a week
-write_to_desktop <- function(df, name){
-  fileConn<-file(file.path(dirname(path.expand('~')),'Desktop', name))
-  writeLines(knitr::kable(df), fileConn)
-  close(fileConn)
-  # write.csv2(, , row.names = F, quote = F)
+write_to_desktop <- function(df, name = str_glue("{str_to_upper(deparse(substitute(df)))}.txt")){
+  if(nrow(df) > 0){
+    fileConn <- file(file.path(dirname(path.expand('~')),'Desktop', name))
+    writeLines(knitr::kable(df), fileConn)
+    close(fileConn)
+  }
 }
 
-for_output    <- entities %>% select(name, result, url)
-errors        <- for_output %>% filter(! result %in% unlist(possible_outcomes))
-to_be_checked <- for_output %>% filter(result == possible_outcomes$CHECKITOUT)
-
-if(nrow(errors) > 0) write_to_desktop(errors, "ERRORS.txt")
-if(nrow(to_be_checked) > 0) write_to_desktop(to_be_checked, "NEW_OFFERS.txt")
+for_output <- entities %>% select(name, result, url)
+errors <- for_output %>% filter(! result %in% unlist(possible_outcomes))
+offers <- for_output %>% filter(result == possible_outcomes$CHECKITOUT)
+write_to_desktop(errors)
+write_to_desktop(offers)
 if(as.integer(format(Sys.Date(), "%d")) %% 7 == 0) write_to_desktop(for_output, "WEEKLY_RESULTS.txt")
