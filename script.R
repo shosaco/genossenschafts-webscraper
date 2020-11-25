@@ -13,9 +13,9 @@ suppressPackageStartupMessages({
 })
 
 entities <- tibble::tribble(~name, ~url, ~path, ~known_offers, ~check_keine_angebote_text,
-                            "bds", "https://www.bds-hamburg.de/unser-angebot/wohnungsangebote/", ".immobilielist .listitem a", c("055.1.012", "022.3.054"), TRUE,
-                            "kaifu", "https://kaifu.de/index.php?id=14", ".getRight .kaifu_elem .kaifu_content a", c("106701", "102501", "105002", "105201"), FALSE,
-                            "fuhle", "https://portal.immobilienscout24.de/ergebnisliste/15339103", ".result__list__element__infos--figcaption a", c("121803482", "123905365", "15339103"), TRUE,
+                            "bds", "https://www.bds-hamburg.de/unser-angebot/wohnungsangebote/", ".immobilielist .listitem a", c("055.1.012"), TRUE,
+                            "kaifu", "https://kaifu.de/index.php?id=14", ".getRight .kaifu_elem .kaifu_content a", c(), FALSE,
+                            "fuhle", "https://portal.immobilienscout24.de/ergebnisliste/15339103", ".result__list__element__infos--figcaption a", c(), TRUE,
                             "farmsen", "https://www.mgf-farmsen.de/de/vermietungen", ".immobilie .imm_top .imm_text a", c(), TRUE,
                             "VHW", "https://www.vhw-hamburg.de/wohnen/aktuelle-angebote.html", "section.searchResults--list a",  c(), TRUE,
                             "Harabau", "http://harabau.de/vermietung/wohnungen", "#homepage-mietangebote-content #subtitle", c(), TRUE,
@@ -42,6 +42,9 @@ check_single <- function(row, possible_outcomes){
   }
   
   offers <- page_html %>% html_nodes(row$path) %>% html_attr("href") %>% unique
+  if(length(offers) == 0){
+    return(possible_outcomes$NOTHING)
+  }
   
   if(length(unlist(row$known_offers)) > 0){
     new <- str_subset(offers, str_flatten(fixed(unlist(row$known_offers)), "|"), negate = TRUE)
@@ -52,7 +55,7 @@ check_single <- function(row, possible_outcomes){
   if (length(new) > 0){
     # open only if > 3 rooms
     text <- page_html %>% html_nodes(str_remove(row$path, " a$")) %>% html_text()
-    interesting <- str_subset(text, "[1-3](,[05])?[ -]Zimmer", negate=T)
+    interesting <- str_subset(text, "Drei|[1-3]([.,][05])?[ -]Zimmer", negate=T)
     if(length(interesting) > 0) return(possible_outcomes$CHECKITOUT) else return(possible_outcomes$ONLY_SMALL)
   }else{
     return(possible_outcomes$NOTHING_NEW)
@@ -69,7 +72,7 @@ entities$result <- map_chr(transpose(entities), possibly(check_single, otherwise
                            possible_outcomes)
 
 # write errors or new offers to desktop always and results to Desktop once a week
-write_to_desktop <- function(df, name = str_glue("{str_to_upper(deparse(substitute(df)))}.txt")){
+write_to_desktop <- function(df, name = str_glue("{f}.txt", f = str_to_upper(deparse(substitute(df))))){
   if(nrow(df) > 0){
     fileConn <- file(file.path(dirname(path.expand('~')),'Desktop', name))
     writeLines(knitr::kable(df), fileConn)
