@@ -19,7 +19,7 @@ entities <- tibble::tribble(~name, ~url, ~path, ~known_offers, ~check_keine_ange
                             "farmsen", "https://www.mgf-farmsen.de/de/vermietungen", ".immobilie .imm_top .imm_text a", c(), TRUE,
                             "VHW", "https://www.vhw-hamburg.de/wohnen/aktuelle-angebote.html", "section.searchResults--list a",  c(), TRUE,
                             "Harabau", "http://harabau.de/vermietung/wohnungen", "#homepage-mietangebote-content #subtitle", c(), TRUE,
-                            "Süderelbe", "https://www.baugen-suederelbe.de/wohnungangebote/", ".pm-component__accomodation_link", c(), TRUE,
+                            "Süderelbe", "https://www.baugen-suederelbe.de/wohnungangebote/", ".pm-component__accomodation_link", c(8835, 8945), TRUE,
                             "BVE", "https://www.bve.de/wohnen-beim-bve/wohnungsbestand/wohnungsangebote/", ".contentWrapper span", c(), TRUE,
                             "Gartenstadt", "https://www.gartenstadt-hamburg.de/angebote", "#main-content", c(), TRUE,
                             "Hansa", "https://hansa-baugenossenschaft.de/wohnen/unsere-wohnungen", "#c635", c(), TRUE)
@@ -47,7 +47,7 @@ check_single <- function(row, possible_outcomes){
   }
   
   if(length(unlist(row$known_offers)) > 0){
-    new <- str_subset(offers, str_flatten(fixed(unlist(row$known_offers)), "|"), negate = TRUE)
+    new <- str_subset(offers, str_flatten(fixed(as.character(unlist(row$known_offers))), "|"), negate = TRUE)
   }else{
     new <- offers
   }
