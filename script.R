@@ -14,15 +14,16 @@ suppressPackageStartupMessages({
 
 entities <- tibble::tribble(~name, ~url, ~path, ~known_offers, ~check_keine_angebote_text,
                             "bds", "https://www.bds-hamburg.de/unser-angebot/wohnungsangebote/", ".immobilielist .listitem a", c("055.1.012"), TRUE,
-                            "kaifu", "https://kaifu.de/index.php?id=14", ".getRight .kaifu_elem .kaifu_content a", c(), FALSE,
+                            "kaifu", "https://kaifu.de/index.php?id=14", ".getRight .kaifu_elem .kaifu_content", c(), FALSE,
                             "fuhle", "https://portal.immobilienscout24.de/ergebnisliste/15339103", ".result__list__element__infos--figcaption a", c(), TRUE,
                             "farmsen", "https://www.mgf-farmsen.de/de/vermietungen", ".immobilie .imm_top .imm_text a", c(), TRUE,
                             "VHW", "https://www.vhw-hamburg.de/wohnen/aktuelle-angebote.html", "section.searchResults--list a",  c(), TRUE,
                             "Harabau", "http://harabau.de/vermietung/wohnungen", "#homepage-mietangebote-content #subtitle", c(), TRUE,
                             "Süderelbe", "https://www.baugen-suederelbe.de/wohnungangebote/", ".pm-component__accomodation_link", c(8835, 8945), TRUE,
-                            "BVE", "https://www.bve.de/wohnen-beim-bve/wohnungsbestand/wohnungsangebote/", ".contentWrapper span", c(), TRUE,
+                            "BVE", "https://www.bve.de/wohnen-beim-bve/wohnungsbestand/wohnungsangebote/", ".contentWrapper .wohnungsangebotBox .boxTextWrapper", c(), TRUE,
                             "Gartenstadt", "https://www.gartenstadt-hamburg.de/angebote", "#main-content", c(), TRUE,
-                            "Hansa", "https://hansa-baugenossenschaft.de/wohnen/unsere-wohnungen", "#c635", c(), TRUE)
+                            "Hansa", "https://hansa-baugenossenschaft.de/wohnen/unsere-wohnungen", "#c635", c(), TRUE,
+                            "Kolping", "https://baugenossenschaft-kolping.de/wohnungsbestand/", ".us_custom_c4937329", c(), TRUE)
 
 check_single <- function(row, possible_outcomes){
   
@@ -41,20 +42,22 @@ check_single <- function(row, possible_outcomes){
     } 
   }
   
-  offers <- page_html %>% html_nodes(row$path) %>% html_attr("href") %>% unique
+  offers <- page_html %>% html_nodes(row$path) 
+  
   if(length(offers) == 0){
     return(possible_outcomes$NOTHING)
   }
   
   if(length(unlist(row$known_offers)) > 0){
-    new <- str_subset(offers, str_flatten(fixed(as.character(unlist(row$known_offers))), "|"), negate = TRUE)
+    offer_links <- offers %>% html_attr("href") %>% unique
+    new <- str_which(offer_links, str_flatten(fixed(as.character(unlist(row$known_offers))), "|"), negate = TRUE)
   }else{
-    new <- offers
+    new <- seq_along(offers)
   }
   
   if (length(new) > 0){
     # open only if > 3 rooms
-    text <- page_html %>% html_nodes(str_remove(row$path, " a$")) %>% html_text()
+    text <- offers[new] %>% html_text %>% str_squish()
     interesting <- str_subset(text, "Drei|[1-3]([.,][05])?[ -]Zimmer", negate=T)
     if(length(interesting) > 0) return(possible_outcomes$CHECKITOUT) else return(possible_outcomes$ONLY_SMALL)
   }else{
@@ -65,7 +68,7 @@ check_single <- function(row, possible_outcomes){
 possible_outcomes <- list("CHECKITOUT" = "Es gibt was neues",
                           "NOTHING" = "Nichts da", 
                           "NOTHING_NEW" = "Nichts neues da", 
-                          "ONLY_SMALL" = "Nur Mauselöcher")
+                          "ONLY_SMALL" = "Nur klein")
 
 # The actual search
 entities$result <- map_chr(transpose(entities), possibly(check_single, otherwise = "UNKNOWN ERROR"), 
@@ -83,6 +86,8 @@ write_to_desktop <- function(df, name = str_glue("{f}.txt", f = str_to_upper(dep
 for_output <- entities %>% select(name, result, url)
 errors <- for_output %>% filter(! result %in% unlist(possible_outcomes))
 offers <- for_output %>% filter(result == possible_outcomes$CHECKITOUT)
+
 write_to_desktop(errors)
 write_to_desktop(offers)
+
 if(as.integer(format(Sys.Date(), "%d")) %% 7 == 0) write_to_desktop(for_output, "WEEKLY_RESULTS.txt")
